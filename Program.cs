@@ -17,6 +17,8 @@ namespace CLICryptoTracker
             request.AddQueryParameter("convert", "USD");
             var response = await client.GetAsync(request);
 
+            Console.WriteLine("asdas");
+
             Console.WriteLine(response.Content);
         }
 
