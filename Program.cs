@@ -19,12 +19,12 @@ namespace CLICryptoTracker
         {
             // Init
             bool running = true;
-            
+
             // Config
             var client = new RestClient("https://api.nomics.com/v1/");
-            var request = new RestRequest("currencies/ticker");
-            string apiKey = "8aec736bde47fc88b2dfce890bd3c5bf00717dd2";
+            string apiKey = "3d05460afd5363d37a455e3a29aa82251d3c8728";
 
+            // Hlavni loop pro beh programu
             while (running)
             {
                 Console.WriteLine("========== Crypto Tracker ==========");
@@ -35,15 +35,17 @@ namespace CLICryptoTracker
 
                 Console.Write("\nVolba: ");
 
+                // Volba moznosti
                 int userChoice = int.Parse(Console.ReadLine());
 
+                // Podminky pro volbu
                 switch (userChoice)
                 {
                     case 1:
                         Console.WriteLine("");
 
                         // Parse
-                        dynamic data = JsonNode.Parse(await GetTopTen(client, request, apiKey));
+                        dynamic data = JsonNode.Parse(await GetMany(client, apiKey, "10"));
                         
                         // Vypíše data o každé kryptoměně
                         foreach (var item in data)
@@ -75,7 +77,7 @@ namespace CLICryptoTracker
                         }
 
                         // Parse
-                        dynamic response = JsonNode.Parse(await GetSearched(client, request, apiKey, tokenName))[0];
+                        dynamic response = JsonNode.Parse(await GetSearched(client, apiKey, tokenName))[0];
 
                         string maxSupplyResponse = response["max_supply"] == null ? "unlimited" : (string) response["max_supply"];
 
@@ -93,16 +95,28 @@ namespace CLICryptoTracker
 
                     case 3:
                         // List random tokenu
-                        string[] tokens = { "BTC", "ETH", "ADA", "XRP", "SOL", "AVAX", "SHIB", "MANA", "USDT", "BNB" };
-                        
-                        // random cislo
-                        Random random = new Random();
-                        int randomNum = random.Next(0, 10);
-                        
-                        Console.WriteLine("");
+                        var tokens = new List<string>();
 
                         // Parse
-                        dynamic res = JsonNode.Parse(await GetSearched(client, request, apiKey, tokens[randomNum]))[0];
+                        dynamic resMany = JsonNode.Parse(await GetMany(client, apiKey, "100"));
+
+                        // Přidá tokeny do listu
+                        foreach (var item in resMany)
+                        {
+                            tokens.Add((string)item["symbol"]);
+                        }
+
+                        // Random cislo v rozmezi od 0 do poctu pozadovanych tokenu
+                        Random random = new Random();
+                        int randomNum = random.Next(0, tokens.Count);
+
+                        Console.WriteLine("");
+
+                        // Delay for api requesty
+                        Thread.Sleep(1000);
+
+                        // Parse
+                        dynamic res = JsonNode.Parse(await GetSearched(client, apiKey, tokens[randomNum]))[0];
 
                         string maxSupplyRes = res["max_supply"] == null ? "unlimited" : (string) res["max_supply"];
 
@@ -120,6 +134,20 @@ namespace CLICryptoTracker
 
                     case 4:
                         Console.WriteLine("Děkujeme za využití CryptoTrackeru");
+
+                        // Nacte jmeno
+                        Console.Write("\nVaše jměno: ");
+                        string name = Console.ReadLine();
+
+                        // Vypise jmeno
+                        Console.Write("Vaše jměno je: ");
+                        foreach (var character in name)
+                        {
+                            Console.Write(character);
+                        }
+
+                        Console.WriteLine("");
+
                         running = false;
                         
                         continue;
@@ -127,14 +155,16 @@ namespace CLICryptoTracker
             }
         }
 
-        // Získá data o top deseti kryptoměnách a vrátí je
-        static async Task<string> GetTopTen(RestClient client, RestRequest request, string apiKey)
+        // Získá data o počtu požadovaných kryptoměn a vrátí je
+        static async Task<string> GetMany(RestClient client, string apiKey, string count)
         {
+            var request = new RestRequest("currencies/ticker");
+
             request.AddQueryParameter("key", apiKey);
             request.AddQueryParameter("interval", "30d");
             request.AddQueryParameter("convert", "USD");
             request.AddQueryParameter("page", "1");
-            request.AddQueryParameter("per-page", "10");
+            request.AddQueryParameter("per-page", count);
             request.AddQueryParameter("sort", "rank");
 
             var response = await client.GetAsync(request);
@@ -143,8 +173,10 @@ namespace CLICryptoTracker
         }
 
         // Získá data o vyhledané kryptoměně a vrátí je
-        static async Task<string> GetSearched(RestClient client, RestRequest request, string apiKey, string tokenName)
+        static async Task<string> GetSearched(RestClient client, string apiKey, string tokenName)
         {
+            var request = new RestRequest("currencies/ticker");
+
             request.AddQueryParameter("key", apiKey);
             request.AddQueryParameter("interval", "30d");
             request.AddQueryParameter("convert", "USD");
